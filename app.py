@@ -216,6 +216,23 @@ def add_picture(event_id):
 #     # TODO: if to_calendar is True, add the event to the user's calendar
 #     return jsonify({'message': 'Event added'})
 
+@app.route("/generate", methods=['GET'])
+def call_gemini():
+    # token = request.headers.get('Authorization')
+    # user = get_current_user(token)
+    return generate()
+
+@app.route("/seed_notes")
+def seed_notes_command():
+    try:
+        seed_notes()
+        print("Notes seeded successfully!")
+        return "Notes seeded successfully!", 200
+    except Exception as e:
+        print(f"Error seeding notes: {e}")
+        return "An error occurred.", 500
+
+
 if __name__ == "__main__":
     with app.app_context():
         db.drop_all()
