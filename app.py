@@ -1,4 +1,4 @@
-from flask import Flask, redirect, request, jsonify, g
+from flask import Flask, redirect, request, jsonify, g, send_from_directory
 from services.googleoauth import authorize, oauth_callback, refresh, get_userinfo
 from services.calendar import get_default_calendar_id, get_events
 from dotenv import load_dotenv
@@ -104,6 +104,10 @@ scopes = [
     'https://www.googleapis.com/auth/userinfo.email',
     'openid'
 ]
+
+@app.route('/picture/<filename>')
+def serve_picture(filename):
+    return send_from_directory(app.config['UPLOAD_FOLDER'], filename)
 
 @app.route("/")
 def hello():
