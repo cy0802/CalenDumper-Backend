@@ -1,6 +1,8 @@
 from flask import Flask, redirect, request, jsonify, g, send_from_directory
 from services.googleoauth import authorize, oauth_callback, refresh, get_userinfo
 from services.calendar import get_default_calendar_id, get_events
+from services.gemini import generate
+from services.seeder import seed_notes
 from dotenv import load_dotenv
 import os
 import jwt
@@ -217,6 +219,24 @@ def add_picture(event_id):
 #     db.session.commit()
 #     # TODO: if to_calendar is True, add the event to the user's calendar
 #     return jsonify({'message': 'Event added'})
+
+@app.route("/generate", methods=['GET'])
+@token_required
+def call_gemini():
+    token = request.headers.get('Authorization')
+    user = get_current_user(token)
+    return generate(user.id)
+
+@app.route("/seed_notes")
+def seed_notes_command():
+    try:
+        seed_notes()
+        print("Notes seeded successfully!")
+        return "Notes seeded successfully!", 200
+    except Exception as e:
+        print(f"Error seeding notes: {e}")
+        return "An error occurred.", 500
+
 
 if __name__ == "__main__":
     with app.app_context():
