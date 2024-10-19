@@ -2,6 +2,7 @@ from flask import Flask, redirect, request
 from services.googleoauth import authorize, oauth_callback, refresh
 from dotenv import load_dotenv
 import os
+import gemini
 
 load_dotenv()
 
@@ -24,6 +25,10 @@ def login():
 def callback():
     access_token = oauth_callback(scopes)
     return redirect(frontend_url)
+
+@app.route("/")
+def call_gemini():
+    return gemini.generate()
 
 if __name__ == "__main__":
     app.run(port=8000, debug=True)
