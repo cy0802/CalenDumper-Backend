@@ -5,10 +5,11 @@ import hashlib
 import google.generativeai as genai
 
 import vertexai
+from flask import Flask, jsonify
 from vertexai.preview.vision_models import ImageGenerationModel
 
 from services.model_setting import *
-from models import Note, Dump
+from models import Note, Dump, db
 
 # API Key for genai
 GOOGLE_API_KEY = os.getenv('GOOGLE_API_KEY')
@@ -18,8 +19,15 @@ PROJECT_ID = "geminidiary"  # @param {type:"string"}
 LOCATION = "us-central1" # @param {type:"string"}
 vertexai.init(project=PROJECT_ID, location=LOCATION)
 
+UPLOAD_FOLDER = 'picture/'
+os.makedirs(UPLOAD_FOLDER, exist_ok=True)
+ALLOWED_EXTENSIONS = {'png', 'jpg', 'jpeg', 'gif'}
+
+app = Flask(__name__)
+app.config['UPLOAD_FOLDER'] = UPLOAD_FOLDER
+
 def generate(userId="111"):
-    # Step 0: 從 database 取得文字和圖片 filter by user_id 文字不為空
+    # Step 0: 從 database 取得文字和圖片
     contents = Note.query.filter(Note.user_id == userId, Note.text != None).all()
     images = Note.query.filter(Note.user_id == userId, Note.picture != None).all()
 
@@ -38,12 +46,10 @@ def generate(userId="111"):
         text_prompts,
         *image_prompts,
     ]
-    print(text_prompts)
-    print(image_prompts)
+  
     response = model.generate_content(prompt_parts)
 
     # Step 2: 提取生成的中文總結和 dump-prompt
-    print(response.text)
     try:
       photo_dump = response.text.split("##")[1]
     except:
@@ -68,17 +74,18 @@ def generate(userId="111"):
     imagen_model = ImageGenerationModel.from_pretrained("imagen-3.0-generate-001")
     
     # 生成圖片
-    dump_response = imagen_model.generate_images(
-      prompt=dump_prompt,
-    )
+    dump_response = imagen_model.generate_images(prompt=dump_prompt)
     
     # Step 5: 將圖片和總結返回前端
     dump_image = dump_response.images[0]
+    
     hash_value = hashlib.sha256(f"{userId}_{time.time()}".encode('utf-8')).hexdigest()
-    dump_image_path = dump_image.save(f"./{hash_value}")
-    Dump(user_id=userId, picture=dump_image_path, text=summarize).save()
+    dump_image_path = f"./{hash_value}.jpg"
+    Dump(user_id=userId, picture=dump_image_path, text=summarize)
+
+    dump_image.save(os.path.join(app.config['UPLOAD_FOLDER'] + dump_image_path))
+    db.session.commit()
 
     print("Dump image saved successfully.")
 
-    # 將總結和圖片一起返回給前端
     return {'summary': summarize, 'image_url': dump_image_path}
