@@ -1,13 +1,15 @@
 from flask import Flask, redirect, request, jsonify, g
 from services.googleoauth import authorize, oauth_callback, refresh, get_userinfo
 from services.calendar import get_default_calendar_id, get_events
+from services.gemini import generate
+from services.seeder import seed_notes
 from dotenv import load_dotenv
 import os
-import gemini
 import jwt
 from models import db, User, Note, Dump
 from flask_login import LoginManager, UserMixin, login_user, logout_user, login_required, current_user
 from functools import wraps
+
 
 load_dotenv()
 
@@ -132,9 +134,22 @@ def events(date):
         'picture': event.picture
     } for event in events])
 
-@app.route("/")
+@app.route("/generate", methods=['POST'])
 def call_gemini():
-    return gemini.generate()
+    token = request.headers.get('Authorization')
+    user = get_current_user(token)
+    return generate(user.id)
+
+@app.route("/seed_notes")
+def seed_notes_command():
+    try:
+        seed_notes()
+        print("Notes seeded successfully!")
+        return "Notes seeded successfully!", 200  # 返回成功訊息
+    except Exception as e:
+        print(f"Error seeding notes: {e}")
+        return "An error occurred.", 500  # 返回錯誤訊息
+
 
 if __name__ == "__main__":
     with app.app_context():
