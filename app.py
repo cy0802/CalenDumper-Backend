@@ -134,21 +134,21 @@ def events(date):
         'picture': event.picture
     } for event in events])
 
-@app.route("/generate", methods=['POST'])
+@app.route("/generate", methods=['GET'])
 def call_gemini():
-    token = request.headers.get('Authorization')
-    user = get_current_user(token)
-    return generate(user.id)
+    # token = request.headers.get('Authorization')
+    # user = get_current_user(token)
+    return generate()
 
 @app.route("/seed_notes")
 def seed_notes_command():
     try:
         seed_notes()
         print("Notes seeded successfully!")
-        return "Notes seeded successfully!", 200  # 返回成功訊息
+        return "Notes seeded successfully!", 200
     except Exception as e:
         print(f"Error seeding notes: {e}")
-        return "An error occurred.", 500  # 返回錯誤訊息
+        return "An error occurred.", 500
 
 
 if __name__ == "__main__":

@@ -38,8 +38,8 @@ Photo Dump（不要加 emoji)：
 
 generation_config = {
     "temperature": 0.8,
-    "top_p": 10,
-    "top_k": 10,
+    "top_p": 1,
+    "top_k": 1,
     "max_output_tokens": 2000,
 }
 

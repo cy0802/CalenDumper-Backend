@@ -18,10 +18,10 @@ PROJECT_ID = "geminidiary"  # @param {type:"string"}
 LOCATION = "us-central1" # @param {type:"string"}
 vertexai.init(project=PROJECT_ID, location=LOCATION)
 
-def generate(userId):
-    # Step 0: 從 database 取得文字和圖片
-    contents = Note.query.filter(Note.text.isnot(None)).all()
-    images = Note.query.filter(Note.picture.isnot(None)).all()
+def generate(userId="111"):
+    # Step 0: 從 database 取得文字和圖片 filter by user_id 文字不為空
+    contents = Note.query.filter(Note.user_id == userId, Note.text != None).all()
+    images = Note.query.filter(Note.user_id == userId, Note.picture != None).all()
 
     # Step 1: 使用 text 模型生成中文 dump-prompt 和建議
     model = genai.GenerativeModel(model_name="gemini-1.5-pro",
@@ -30,7 +30,7 @@ def generate(userId):
 
     text_prompts = ''.join([f"""### 事件：{content.event_summary}\n
                             ### 心得：{content.text}\n""" for content in contents])
-    image_prompts = [genai.upload_file(path=image, display_name=image.strip(".py"))
+    image_prompts = [genai.upload_file(path=image.picture, display_name=image.picture.strip(".py"))
                 for image in images]
 
     prompt_parts = [
@@ -38,11 +38,24 @@ def generate(userId):
         text_prompts,
         *image_prompts,
     ]
+    print(text_prompts)
+    print(image_prompts)
     response = model.generate_content(prompt_parts)
 
     # Step 2: 提取生成的中文總結和 dump-prompt
-    photo_dump = response.text.split("##")[1]
-    summarize = response.text.split("##")[2]
+    print(response.text)
+    try:
+      photo_dump = response.text.split("##")[1]
+    except:
+      photo_dump = response.text
+    try:
+      summarize = response.text.split("##")[2]
+    except:
+      summarize = response.text
+
+    print(photo_dump)
+    print()
+    print(summarize)
 
     # Step 3: 將中文 dump-prompt 翻譯成英文
     translate_model = genai.GenerativeModel(model_name="gemini-1.5-flash",
@@ -57,14 +70,15 @@ def generate(userId):
     # 生成圖片
     dump_response = imagen_model.generate_images(
       prompt=dump_prompt,
-      aspect_ratio="16:9",
-      person_generation="dont_allow"
     )
     
     # Step 5: 將圖片和總結返回前端
     dump_image = dump_response.images[0]
-    dump_image_path = dump_image.save(hashlib.sha256(f"{userId}_{time.time()}".encode('utf-8')))
+    hash_value = hashlib.sha256(f"{userId}_{time.time()}".encode('utf-8')).hexdigest()
+    dump_image_path = dump_image.save(f"./{hash_value}")
     Dump(user_id=userId, picture=dump_image_path, text=summarize).save()
+
+    print("Dump image saved successfully.")
 
     # 將總結和圖片一起返回給前端
     return {'summary': summarize, 'image_url': dump_image_path}

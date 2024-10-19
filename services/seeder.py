@@ -7,6 +7,9 @@ from datetime import datetime, timedelta
 fake = Faker()
 
 def seed_notes():
+    # 輸出我現在的 database 名字
+    print(db.engine.url.database)
+
     # 手動創建一些用戶數據
     user1 = User(id="111", email="111@example.com", calendar_id="password123")
     user2 = User(id="222", email="222@example.com", calendar_id="password123")
@@ -36,7 +39,7 @@ def seed_notes():
                 event_end=event_end,
                 event_summary="某個事件",  # 手動定義事件摘要
                 text="不嘻嘻",  # 手動定義事件描述
-                picture="../famiy.jpg"  # 手動定義圖片路徑
+                picture="./family.jpg"  # 手動定義圖片路徑
             )
 
             # 添加到資料庫
