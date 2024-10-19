@@ -217,10 +217,11 @@ def add_picture(event_id):
 #     return jsonify({'message': 'Event added'})
 
 @app.route("/generate", methods=['GET'])
+@token_required
 def call_gemini():
-    # token = request.headers.get('Authorization')
-    # user = get_current_user(token)
-    return generate()
+    token = request.headers.get('Authorization')
+    user = get_current_user(token)
+    return generate(user.id)
 
 @app.route("/seed_notes")
 def seed_notes_command():

@@ -26,7 +26,7 @@ ALLOWED_EXTENSIONS = {'png', 'jpg', 'jpeg', 'gif'}
 app = Flask(__name__)
 app.config['UPLOAD_FOLDER'] = UPLOAD_FOLDER
 
-def generate(userId="111"):
+def generate(userId):
     # Step 0: 從 database 取得文字和圖片
     contents = Note.query.filter(Note.user_id == userId, Note.text != None).all()
     images = Note.query.filter(Note.user_id == userId, Note.picture != None).all()
