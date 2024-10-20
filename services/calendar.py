@@ -12,13 +12,26 @@ def get_default_calendar_id(access_token):
     return result['id']
 
 def sync_events(access_token, user_id, calendar_id, start_time, end_time):
-    result = requests.get(
+    response = requests.get(
         f"https://www.googleapis.com/calendar/v3/calendars/{calendar_id}/events", 
         headers={"Authorization": f"Bearer {access_token}"}, 
         params={"timeMin": start_time, "timeMax": end_time}
-    ).json()
+    )
+    
+    # if response.status_code == 401:
+    #     return 1
+    
+    result = response.json()
     print(result)
     events = result.get('items', [])
+    filtered_events = [
+        event for event in events 
+        if 'start' in event and 
+            'end' in event and 
+            'dateTime' in event['start'] and 
+            'dateTime' in event['end'] and
+            Note.query.filter_by(event_id=event['id']).first() is None
+    ]
     notes = [
         {
             'user_id': user_id,
@@ -29,12 +42,12 @@ def sync_events(access_token, user_id, calendar_id, start_time, end_time):
             'text': '',
             'picture': ''
         }
-        for event in events
+        for event in filtered_events
     ]
     print(notes)
     
     stmt = insert(Note).values(notes)
-    # stmt = stmt.prefix_with('IGNORE')
+    stmt = stmt.prefix_with('IGNORE')
     print(stmt)
     try:
         print("try")
@@ -43,12 +56,15 @@ def sync_events(access_token, user_id, calendar_id, start_time, end_time):
     except IntegrityError:
         print("integrity error")
         db.session.rollback()
+    # return 0
 
 
 def get_events(access_token, user_id, calendar_id, date):
     start_time = f"{date}T00:00:00.000Z"
     end_time = f"{date}T23:59:59.000Z"
-    sync_events(access_token, user_id, calendar_id, start_time, end_time)
-    events = Note.query.filter(Note.event_start >= start_time, Note.event_end <= end_time).all()
+    err = sync_events(access_token, user_id, calendar_id, start_time, end_time)
+    # if err:
+    #     return -1
+    events = Note.query.filter(Note.user_id == user_id, Note.event_start >= start_time, Note.event_end <= end_time).order_by(Note.event_start).all()
     return events
     

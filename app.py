@@ -1,4 +1,5 @@
 from flask import Flask, redirect, request, jsonify, g, send_from_directory
+from flask_cors import CORS
 from services.googleoauth import authorize, oauth_callback, refresh, get_userinfo
 from services.calendar import get_default_calendar_id, get_events
 from services.gemini import generate
@@ -25,6 +26,7 @@ frontend_url = os.getenv('FRONTEND_URL', 'http://localhost:3000')
 backend_url = os.getenv('BACKEND_URL', 'http://localhost:8000')
 login_manager = LoginManager()
 login_manager.init_app(app)
+CORS(app)
 
 app.config['SQLALCHEMY_DATABASE_URI'] = os.getenv('DATABASE_URI', 'sqlite:///default.db')
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
@@ -140,6 +142,8 @@ def events(date):
     token = request.headers.get('Authorization')
     user = get_current_user(token)
     events = get_events(user.access_token, user.id, user.calendar_id, date)
+    # if events == -1:
+    #     return jsonify({"message": "unauthorized"}), 401
     return jsonify([{
         'event_id': event.event_id,
         'start_time': event.event_start,
