@@ -6,7 +6,7 @@ from services.gemini import generate
 from services.seeder import seed_notes
 from dotenv import load_dotenv
 import os
-import jwt
+import jwt as py_jwt_lib
 from models import db, User, Note, Dump
 from flask_login import LoginManager, UserMixin, login_user, logout_user, login_required, current_user
 from functools import wraps
@@ -55,11 +55,11 @@ class User_Login(UserMixin):
         db.session.commit()
     
     def generate_token(self):
-        return jwt.encode({'email': self.email}, app.secret_key, algorithm='HS256')
+        return py_jwt_lib.encode({'email': self.email}, app.secret_key, algorithm='HS256')
     
     def verify_token(self, token):
         try:
-            return jwt.decode(token, app.secret_key, algorithms=['HS256'])['email'] == self.email
+            return py_jwt_lib.decode(token, app.secret_key, algorithms=['HS256'])['email'] == self.email
         except:
             return False
 
@@ -81,7 +81,7 @@ def token_required(f):
             return jsonify({'message': 'Token is missing!'}), 401
         try:
             token = token.split(' ')[1]
-            data = jwt.decode(token, app.secret_key, algorithms=["HS256"])
+            data = py_jwt_lib.decode(token, app.secret_key, algorithms=["HS256"])
             current_user = users.get(data['email'])
             print(data)
             print(data['email'])
@@ -94,10 +94,10 @@ def token_required(f):
         return f(*args, **kwargs)
     return decorated
 
-def get_current_user(jwt_token):
-    jwt_token = jwt_token.split(" ")[1]
-    print(jwt.decode(jwt_token, app.secret_key, algorithms=["HS256"])['email'])
-    return users.get(jwt.decode(jwt_token, app.secret_key, algorithms=["HS256"])['email'])
+def get_current_user(token):
+    token = token.split(" ")[1]
+    print(py_jwt_lib.decode(token, app.secret_key, algorithms=["HS256"])['email'])
+    return users.get(py_jwt_lib.decode(token, app.secret_key, algorithms=["HS256"])['email'])
 
 users = {}
 
